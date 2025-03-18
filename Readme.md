@@ -15,7 +15,42 @@ This API includes the following vulnerabilities:
 1. **User Enumeration via Login Responses**: The API reveals whether a user exists or not through specific error messages.
 2. **User Enumeration via Forgot Password**: The password recovery route reveals if a user exists and exposes their email address.
 3. **Accessing Unauthenticated Endpoints**: Endpoints that should require authentication are publicly accessible.
-4. **JWT sin Verificación de Permisos**: Some endpoints do not properly verify user permissions.
+4. **JWT without verify permission**: Some endpoints do not properly verify user permissions.
+5. **Rate Limiting**: Endpoints witout security control in place associated with Rate Limiting
+
+## 🚀 Update - MFA & Password Reset Endpoints
+
+### 🔹 New Endpoints Added
+
+The following endpoints were added to demonstrate vulnerabilities in rate limiting:
+
+1. **Generate MFA Code** (`POST /api/mfa/generate`)  
+   - Generates a 6-digit MFA code for a user.  
+   - **Vulnerability**: No rate limiting, allowing brute-force attacks to request multiple MFA codes.
+
+2. **Verify MFA Code** (`POST /api/mfa/verify`)  
+   - Verifies the MFA code provided by the user.  
+   - **Vulnerability**: No rate limiting, enabling unlimited attempts to guess the MFA code.
+
+3. **Reset Password** (`POST /api/reset-password`)  
+   - Allows a user to reset their password via email.  
+   - **Vulnerability**: No rate limiting, allowing brute-force enumeration of registered emails.
+
+### 🔥 Security Issues Identified
+- **Rate Limiting Missing**: Attackers can flood these endpoints with unlimited requests.
+- **Brute-Force Risk**: No restrictions on MFA verification attempts.
+- **User Enumeration**: Password reset endpoint confirms whether an email exists.
+
+### 📌 Next Steps
+To improve security, consider implementing:
+- Rate limiting (e.g., Flask-Limiter).
+- Locking mechanisms for excessive failed attempts.
+- Secure MFA workflows with expiration and retry limits.
+
+---
+
+For more details, check the source code updates! 🛡️
+
 
 ## Requirements
 
@@ -65,10 +100,14 @@ The application uses a simple `Usuario (User)` data model with the following fie
 
 | Method | Route | Description | Vulnerability |
 |--------|-------|-------------|---------------|
-| POST | `/api/login` | User Authentication | User enumeration |
-| POST | `/api/forgot-password` | Password recovery | User enumeration |
-| GET | `/api/users` | List all users | No authentication |
-| GET | `/api/admin/settings` | Admin settings | No permission verification |
+| POST   | `/api/login` | User Authentication | User enumeration |
+| POST   | `/api/forgot-password` | Password recovery | User enumeration |
+| GET    | `/api/users` | List all users | No authentication |
+| GET    | `/api/admin/settings` | Admin settings | No permission verification |
+| POST   | `/api/generate-mfa` | Generate MFA code | No rate limiting |
+| POST   | `/api/verify-mfa` | Verify MFA code | No rate limiting |
+| POST   | `/api/reset-password` | Reset password | No rate limiting |
+
 
 
 ## How to Protect Against These Vulnerabilities
