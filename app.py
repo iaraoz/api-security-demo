@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 import jwt
 import datetime
+import random
 import hashlib
 from functools import wraps
 
@@ -22,6 +23,14 @@ class Usuario(db.Model):
     password = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+
+    # 🔹 Columnas para MFA
+    mfa_code = db.Column(db.String(6), nullable=True)
+    mfa_expiration = db.Column(db.DateTime, nullable=True)
+    mfa_attempts = db.Column(db.Integer, default=0)  # 🚨 Protección contra fuerza bruta
+    mfa_locked_until = db.Column(db.DateTime, nullable=True)  # 
+
+    
     
     def __repr__(self):
         return f'<Usuario {self.username}>'
@@ -185,6 +194,57 @@ def verify_token():
         return jsonify({'valid': True, 'payload': data})
     except Exception as e:
         return jsonify({'valid': False, 'error': str(e)}), 401
+
+def generar_codigo_mfa():
+    return str(random.randint(100000, 999999))
+
+# 1️⃣ Endpoint vulnerable: Generar MFA sin rate limiting
+
+@app.route('/api/generate-mfa', methods=['POST'])
+@token_required
+def generate_mfa():
+    data = request.get_json()
+    user = Usuario.query.filter_by(username=data.get('username')).first()
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    
+    user.mfa_code = generar_codigo_mfa()
+    user.mfa_expiration = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+    db.session.commit()
+    
+    return jsonify({'message': 'MFA Code generated', 'mfa_code': user.mfa_code})  # ⚠️ Devuelve el código directamente
+
+# 2️⃣ Endpoint vulnerable: Verificar MFA sin rate limiting
+
+@app.route('/api/verify-mfa', methods=['POST'])
+@token_required
+def verify_mfa():
+    data = request.get_json()
+    user = Usuario.query.filter_by(username=data.get('username')).first()
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    
+    if user.mfa_code != data.get('mfa_code'):
+        return jsonify({'message': 'Incorrect Code'}), 401  # ⚠️ Sin límite de intentos
+    
+    return jsonify({'message': 'MFA successfully verified'})
+
+# 3️⃣ Endpoint vulnerable: Reset password sin rate limiting
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    user = Usuario.query.filter_by(username=data.get('username')).first()
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    
+    user.password = hashlib.sha256(data.get('new_password').encode()).hexdigest()
+    db.session.commit()
+    
+    return jsonify({'message': 'Password has benn reset'})  # ⚠️ Permite intentos ilimitados sin validación
+
 
 # Inicializar la base de datos antes de ejecutar la aplicación
 init_db()
