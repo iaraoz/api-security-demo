@@ -18,7 +18,7 @@ This API includes the following vulnerabilities:
 4. **JWT without verify permission**: Some endpoints do not properly verify user permissions.
 5. **Rate Limiting**: Endpoints witout security control in place associated with Rate Limiting
 
-## 🚀 Update - MFA & Password Reset Endpoints
+## 🚀 Update - MFA & Password Reset Endpoints - March 03, 2025
 
 ### 🔹 New Endpoints Added
 
