@@ -45,10 +45,10 @@ def init_db():
             # Agregar usuarios de prueba
             usuarios = [
                 Usuario(id=1, username='admin', 
-                       password=hashlib.sha256('admin123'.encode()).hexdigest(), 
+                       password=hashlib.sha256('admin123'.encode()).hexdigest(),  #New password update on March 19 :1122321
                        email='admin@example.com', is_admin=True),
                 Usuario(id=2, username='usuario1', 
-                       password=hashlib.sha256('password123'.encode()).hexdigest(), 
+                       password=hashlib.sha256('password123'.encode()).hexdigest(), #New password update on March 19 :1122321
                        email='usuario1@example.com', is_admin=False),
                 Usuario(id=3, username='usuario2', 
                        password=hashlib.sha256('securepass'.encode()).hexdigest(), 
@@ -202,7 +202,7 @@ def generar_codigo_mfa():
 
 @app.route('/api/generate-mfa', methods=['POST'])
 @token_required
-def generate_mfa():
+def generate_mfa(current_user):
     data = request.get_json()
     user = Usuario.query.filter_by(username=data.get('username')).first()
     
@@ -219,8 +219,9 @@ def generate_mfa():
 
 @app.route('/api/verify-mfa', methods=['POST'])
 @token_required
-def verify_mfa():
+def verify_mfa(current_user):
     data = request.get_json()
+    print(data)
     user = Usuario.query.filter_by(username=data.get('username')).first()
     
     if not user:
@@ -243,7 +244,7 @@ def reset_password():
     user.password = hashlib.sha256(data.get('new_password').encode()).hexdigest()
     db.session.commit()
     
-    return jsonify({'message': 'Password has benn reset'})  # ⚠️ Permite intentos ilimitados sin validación
+    return jsonify({'message': 'Password has been reset'})  # ⚠️ Permite intentos ilimitados sin validación
 
 
 # Inicializar la base de datos antes de ejecutar la aplicación
